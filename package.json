@@ -1,6 +1,6 @@
 {
   "name": "@duodecimstudio/my-market-component",
-  "version": "0.1.9",
+  "version": "0.2.0",
   "description": "A reusable market component test.",
   "main": "dist/my-market-component.min.js",
   "type": "module",

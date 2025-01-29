@@ -16,7 +16,7 @@ class MyMarketComponent extends HTMLElement {
   }
 
   async render(): Promise<void> {
-    const shadow = this.shadowRoot!;
+    const shadow = this.shadowRoot as ShadowRoot;
     shadow.innerHTML = `
       <style>
         * {
@@ -95,19 +95,17 @@ class MyMarketComponent extends HTMLElement {
     `;
 
     try {
-      const collectionId: string = this.getAttribute('collection') || 'Default';
-      const response = await fetch(`https://uncut.network/api/rss?collection_id=${collectionId}`);
-      const text = await response.text();
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(text, 'text/xml');
-      const items = xmlDoc.querySelectorAll('item');
+      const collectionId = this.getAttribute('collection') || 'Default';
+      const response = await fetch(`https://duodecimstudio.ddns.net:3000/get-uncut-collection-by-id/${collectionId}`);
+      const data = await response.json();
+      const channel = data.rss.channel[0];
+      const items = channel.item || [];
 
-      // Extract the first <title> for collection name
-      let collectionTitle: string =
-        xmlDoc.querySelector('channel > title')?.textContent?.replace(/<!\[CDATA\[(.*?)\]\]>/, '$1') || 'Unknown Collection';
+      // Extract the collection title
+      const collectionTitle = channel.title[0] || 'Unknown Collection';
 
       // Ensure there's only one collection title div
-      let collectionTitleDiv = shadow.querySelector<HTMLDivElement>('#collection-title');
+      let collectionTitleDiv = shadow.querySelector('#collection-title');
       if (!collectionTitleDiv) {
         collectionTitleDiv = document.createElement('div');
         collectionTitleDiv.id = 'collection-title';
@@ -117,27 +115,23 @@ class MyMarketComponent extends HTMLElement {
       collectionTitleDiv.textContent = `Collection: ${collectionTitle}`;
 
       // Clear previous content
-      const contentDiv = shadow.querySelector<HTMLDivElement>('#content');
+      const contentDiv = shadow.querySelector('#content');
       if (contentDiv) {
         contentDiv.innerHTML = '';
 
         // Create cards for each item
-        items.forEach(item => {
-          const title: string =
-            item.querySelector('title')?.textContent?.replace(/<!\[CDATA\[(.*?)\]\]>/, '$1') || 'No Title';
-          const description: string =
-            item.querySelector('description')?.textContent?.replace(/<!\[CDATA\[(.*?)\]\]>/, '$1') || 'No Description';
-          const imageUrl: string =
-            item.querySelector('enclosure')?.getAttribute('url') || 'https://via.placeholder.com/300x200?text=No+Image';
-          const link: string = 
-            item.querySelector('link')?.textContent?.trim() || '#';
+        items.forEach((item: any) => {
+          const title = item.title?.[0] || 'No Title';
+          const description = item.description?.[0] || 'No Description';
+          const imageUrl = item.enclosure?.[0]?.['$']?.url || 'https://via.placeholder.com/300x200?text=No+Image';
+          const link = item.link?.[0] || '#';
 
           // Create a clickable card
           const card = document.createElement('a');
           card.classList.add('card');
           card.href = link;
-          card.target = "_blank"; // Open in a new tab
-          card.rel = "noopener noreferrer"; // Security best practice
+          card.target = '_blank'; // Open in a new tab
+          card.rel = 'noopener noreferrer'; // Security best practice
           card.innerHTML = `
             <img src="${imageUrl}" alt="${title}" />
             <div class="card-content">
@@ -149,9 +143,9 @@ class MyMarketComponent extends HTMLElement {
         });
       }
     } catch (error) {
-      const contentDiv = shadow.querySelector<HTMLDivElement>('#content');
+      const contentDiv = shadow.querySelector('#content');
       if (contentDiv) {
-        contentDiv.innerHTML = '<p>Error loading RSS data.</p>';
+        contentDiv.innerHTML = '<p>Error loading data. Please try again later.</p>';
       }
     }
   }
